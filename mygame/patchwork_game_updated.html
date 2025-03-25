@@ -247,8 +247,97 @@
 +------------------------------+`
         };
 
-        // Game initialization and other functions would go here
-        // This is a simplified version for demonstration purposes
+        // Function to print text to the output area
+        function print(text, color = 'white') {
+            const output = document.getElementById('output');
+            const span = document.createElement('span');
+            span.className = color;
+            span.textContent = text + '\n';
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Function to handle commands
+        function sendCommand(command) {
+            const input = document.getElementById('input');
+            input.value = command;
+            processCommand();
+        }
+
+        // Function to process commands
+        function processCommand() {
+            const input = document.getElementById('input');
+            const command = input.value.trim().toUpperCase();
+            input.value = '';
+            
+            print(`> ${command}`, 'green');
+            
+            // Process the command logic here
+            // This is a simplified version for demonstration
+            if (command === 'BEGIN SESSION') {
+                print('Session initialized. Welcome to THE PATCHWORK.', 'cyan');
+                gameState.session = true;
+            } else if (command === 'BEGIN GAME') {
+                if (!gameState.session) {
+                    print('You must begin a session first.', 'red');
+                } else {
+                    print('Game started. Good luck on your journey.', 'cyan');
+                    gameState.gameStarted = true;
+                }
+            } else {
+                print('Command processed.', 'white');
+            }
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputElement = document.getElementById('input');
+            const submitButton = document.getElementById('submit');
+            
+            // Submit command on button click
+            submitButton.addEventListener('click', processCommand);
+            
+            // Submit command on Enter key
+            inputElement.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    processCommand();
+                }
+            });
+            
+            // Initial welcome message
+            print('Welcome to THE PATCHWORK: AMERICA 2035', 'cyan');
+            print('Type or select a command to begin.', 'yellow');
+        });
+
+        // Create a page down button directly in HTML for better visibility
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create a visible button element in the DOM
+            const pageDownButtonHTML = document.createElement('div');
+            pageDownButtonHTML.className = 'page-down-button';
+            pageDownButtonHTML.innerHTML = '↓';
+            pageDownButtonHTML.title = 'Page Down';
+            pageDownButtonHTML.style.position = 'fixed';
+            pageDownButtonHTML.style.right = '20px';
+            pageDownButtonHTML.style.top = '300px'; // Position it above BEGIN GAME
+            
+            // Add the button to the document
+            document.body.appendChild(pageDownButtonHTML);
+            
+            // Add click event for scrolling
+            pageDownButtonHTML.addEventListener('click', function() {
+                const output = document.getElementById('output');
+                if (output) {
+                    const lineHeight = parseInt(window.getComputedStyle(output).lineHeight) || 20;
+                    const visibleLines = Math.floor(output.clientHeight / lineHeight);
+                    const scrollAmount = lineHeight * visibleLines;
+                    
+                    output.scrollBy({
+                        top: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
     </script>
 </body>
 </html>
