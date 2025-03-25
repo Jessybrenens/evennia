@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE PATCHWORK: AMERICA 2035</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #111;
+            padding: 20px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        #output {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #000;
+            padding: 10px;
+            border: 1px solid #0f0;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        #input-container {
+            display: flex;
+        }
+        #input {
+            flex-grow: 1;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            font-family: 'Courier New', monospace;
+        }
+        #submit {
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            padding: 5px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #commands {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #111;
+            border: 1px solid #0f0;
+        }
+        .command-btn {
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .command-btn:hover {
+            background-color: #0f0;
+            color: #000;
+        }
+        .cyan { color: cyan; }
+        .yellow { color: yellow; }
+        .red { color: red; }
+        .green { color: lightgreen; }
+        .white { color: white; }
+        .magenta { color: magenta; }
+        .ascii-art {
+            font-family: monospace;
+            white-space: pre;
+        }
+        #patch-selection {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #111;
+            border: 1px solid #0f0;
+        }
+        .patch-option {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #000;
+            border: 1px solid #0f0;
+            cursor: pointer;
+        }
+        .patch-option:hover {
+            background-color: #0a0a0a;
+        }
+        .patch-option.selected {
+            background-color: #003300;
+            border: 1px solid #0f0;
+        }
+        #selection-counter {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        #confirm-selection {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            display: block;
+        }
+        #confirm-selection:disabled {
+            background-color: #005500;
+            color: #333;
+            cursor: not-allowed;
+        }
+        #page-down-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 2px solid #0f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+        #page-down-button:hover {
+            background-color: rgba(0, 255, 0, 0.4);
+        }
+        #page-down-button::after {
+            content: "↓";
+            color: #0f0;
+            font-size: 24px;
+        }
+        #info-tooltip {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background-color: #000;
+            border: 1px solid #0f0;
+            padding: 10px;
+            max-width: 250px;
+            font-size: 12px;
+            color: #0f0;
+            display: none;
+            z-index: 1001;
+        }
+        #info-tooltip.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1 class="cyan">THE PATCHWORK: AMERICA 2035</h1>
+        <div id="output"></div>
+        <div id="input-container">
+            <input type="text" id="input" placeholder="Type your command here...">
+            <button id="submit">Submit</button>
+        </div>
+        <div id="commands">
+            <h3 class="yellow">Quick Commands:</h3>
+            <button class="command-btn" onclick="sendCommand('BEGIN SESSION')">BEGIN SESSION</button>
+            <button class="command-btn" onclick="sendCommand('BEGIN GAME')">BEGIN GAME</button>
+            <button class="command-btn" onclick="sendCommand('END SESSION')">END SESSION</button>
+            <button class="command-btn" onclick="sendCommand('TRAVEL')">TRAVEL</button>
+            <button class="command-btn" onclick="sendCommand('EXPLORE')">EXPLORE</button>
+            <button class="command-btn" onclick="sendCommand('INVESTIGATE')">INVESTIGATE</button>
+            <button class="command-btn" onclick="sendCommand('INTERACT')">INTERACT</button>
+            <button class="command-btn" onclick="sendCommand('CONVERSATE')">CONVERSATE</button>
+            <button class="command-btn" onclick="sendCommand('DISPLAY MAP')">DISPLAY MAP</button>
+        </div>
+        
+        <!-- Patch Selection Interface -->
+        <div id="patch-selection">
+            <h3 class="cyan">Select up to 3 PATCHES to include in your journey:</h3>
+            <div id="patch-options"></div>
+            <div id="selection-counter" class="yellow">Selected: 0/3</div>
+            <button id="confirm-selection" disabled>Confirm Selection</button>
+        </div>
+    </div>
+    
+    <div id="page-down-button"></div>
+    <div id="info-tooltip">
+        Single click: Scroll down one page<br>
+        Double click: Return to your last action<br>
+        (Click this tooltip to dismiss)
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            session: false,
+            gameStarted: false,
+            currentPatch: null,
+            currentLandmark: null,
+            currentEntity: null,
+            tooCurious: 0,
+            patches: [],
+            entities: [],
+            selectedPatches: [],
+            patchSelectionComplete: false
+        };
+
+        // ASCII Maps
+        const asciiMaps = {
+            patch1: `
++------------------------------+
+|            PATCH 1           |
+|             "X"              |
+|                              |
+|    [L1]----[L2]              |
+|     |                        |
+|    [L3]                      |
+|                              |
++------------------------------+`,
+            patch2: `
++------------------------------+
+|            PATCH 2           |
+|           "PRIME"            |
+|                              |
+|    [L1]----[L2]----[L3]      |
+|                              |
+|                              |
+|                              |
++------------------------------+`,
+            patch3: `
++------------------------------+
+|            PATCH 3           |
+|         "BALAJISTAN"         |
+|                              |
+|    [L1]                      |
+|     |                        |
+|    [L2]----[L3]              |
+|                              |
++------------------------------+`,
+            patch4: `
++------------------------------+
+|            PATCH 4           |
+|           "PRAXIA"           |
+|                              |
+|    [L1]----[L3]              |
+|     |                        |
+|    [L2]                      |
+|                              |
++------------------------------+`,
+            patch5: `
++------------------------------+
+|            PATCH 5           |
+|        "JEFFERSONIAN"        |
+|                              |
+|    [L1]----[L2]              |
+|             |                |
+|            [L3]              |
+|                              |
++------------------------------+`,
+            patch6: `
++------------------------------+
+|            PATCH 6           |
+|      "THE WALLED GARDEN"     |
+|                              |
+|    [L1]                      |
+|     |                        |
+|    [L2]----[L3]              |
+|                              |
++------------------------------+`,
+            landmark: `
++------------------------------+
+|           LANDMARK           |
+|                              |
+|    [C1]    [O1]              |
+|                              |
+|    [O2]    [C2]              |
+|                              |
++------------------------------+`
+        };
+
+        // All available patches
+        const allPatches = [
+            {
+                number: 1,
+                name: "X",
+                motto: "Efficiency through elimination of choice.",
+                location: "Former Silicon Valley, California",
+                overview: "X represents the ultimate expression of efficiency and minimalism. Every element in this patch has been optimized to serve its function with minimal resource expenditure. The aesthetic is stark white and geometric, with no decorative elements. Citizens move with purpose, speaking in concise, information-dense sentences.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "The Hub",
+                        description: "You stand in the Central Hub of X, a vast white space of perfect geometric precision. The floor, walls, and ceiling form a seamless continuum of non-reflective white material. Citizens in identical white uniforms move along invisible pathways, their trajectories optimized to prevent collisions. The ambient temperature is exactly 20°C—determined to be the optimal balance between comfort and cognitive function.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Efficiency Officer", description: "A person in a plain gray uniform who monitors productivity metrics." },
+                            { type: "OBJECT", number: 1, name: "Minimalist Terminal", description: "A sleek white terminal with a single button." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "Residential Block A",
+                        description: "The Residential Block of X consists of identical white cubes arranged in a perfect grid pattern. Each unit provides exactly 27 cubic meters of living space—the calculated minimum for optimal human function. The furnishings are sparse: a sleep platform, a nutrition station, a hygiene pod, and a work terminal.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Resident 1729", description: "A citizen wearing the standard gray jumpsuit of X." },
+                            { type: "OBJECT", number: 2, name: "Nutrition Dispenser", description: "A machine that provides perfectly balanced nutrient paste." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Production Zone",
+                        description: "The Optimization Center is a circular chamber dominated by a massive holographic display showing the entire patch as a three-dimensional model. Efficiency analysts in white uniforms monitor every aspect of X's operations, their movements as precise as the data they manipulate.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Maintenance Technician", description: "A person responsible for keeping the automation running smoothly." },
+                            { type: "OBJECT", number: 3, name: "Assembly Robot", description: "A robot arm that performs repetitive tasks with perfect accuracy." }
+                        ]
+                    }
+                ]
+            },
+            {
+                number: 2,
+                name: "PRIME",
+                motto: "Only the numbers that matter.",
+                location: "Former Seattle, Washington",
+                overview: "PRIME is built on the fundamental belief that mathematics is the universal language and the key to perfection. Every aspect of society follows mathematical principles, from the Fibonacci-inspired architecture to the algorithm-driven social interactions. Citizens view the world through equations, finding beauty in patterns and symmetry.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "Algorithm Plaza",
+                        description: "You enter Calculation Plaza, where the ground is paved with tiles displaying famous mathematical constants. A massive π symbol forms the central fountain, water flowing in perfect parabolic arcs. Citizens gather around quantum calculation terminals, their faces illuminated by the glow of ever-changing equations.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Data Analyst", description: "A person staring intently at floating holographic numbers." },
+                            { type: "OBJECT", number: 1, name: "Calculation Pillar", description: "A tall obelisk covered in mathematical symbols that change patterns." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "Quantum Computing Center",
+                        description: "The Quantum Research Center exists in a state of architectural superposition—parts of the building seem to fade in and out of reality as you observe them. The effect is intentional, a physical manifestation of the quantum principles being studied within.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Quantum Engineer", description: "A person monitoring the delicate quantum states of the computers." },
+                            { type: "OBJECT", number: 2, name: "Quantum Core", description: "A shimmering cube suspended in a vacuum chamber." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Fibonacci Gardens",
+                        description: "The Fibonacci Gardens showcase the beauty of mathematical patterns in nature. Every plant is arranged according to precise mathematical ratios, creating spirals and symmetries that are visually stunning and mathematically perfect.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Garden Mathematician", description: "A person carefully trimming plants to maintain perfect ratios." },
+                            { type: "OBJECT", number: 3, name: "Golden Ratio Sculpture", description: "A metallic sculpture that embodies the golden ratio in its design." }
+                        ]
+                    }
+                ]
+            },
+            {
+                number: 3,
+                name: "BALAJISTAN",
+                motto: "Disruption as a way of life.",
+                location: "Former Austin, Texas",
+                overview: "BALAJISTAN embodies the philosophy of creative destruction and constant innovation. Nothing remains static; everything is in a perpetual state of disruption and reinvention. The architecture, social structures, and even personal identities are fluid, changing at a dizzying pace. Citizens embrace chaos as the engine of progress.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "Pivot Plaza",
+                        description: "Pivot Plaza looks nothing like it did yesterday, and will transform again by tomorrow. Construction and demolition occur simultaneously, with buildings being dismantled even as their replacements rise beside them. The plaza's central feature—currently a 50-foot statue of Balaji himself—has been replaced seventeen times this month alone.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Serial Entrepreneur", description: "A person frantically pitching ideas to anyone who will listen." },
+                            { type: "OBJECT", number: 1, name: "Idea Generator", description: "A machine that randomly combines words to create startup concepts." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "The Incubator",
+                        description: "The Accelerator District is a maze of glass-walled incubator spaces where startups form, pivot, and dissolve at hyperspeed. Teams frantically code, pitch, and restructure their business models, often switching entire industries multiple times per day.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Venture Capitalist", description: "A person in expensive clothes evaluating pitches with cold calculation." },
+                            { type: "OBJECT", number: 2, name: "Funding Terminal", description: "A device that dispenses investment capital based on algorithmic predictions." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Failure Museum",
+                        description: "The Disruption Dome is BALAJISTAN's central governance structure—though 'governance' is a term used loosely here. The dome's interior is a chaotic arena where policy decisions are made through a combination of prediction markets, hackathons, and literal gladiatorial debates.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Failure Coach", description: "A person who helps entrepreneurs reframe their failures as learning experiences." },
+                            { type: "OBJECT", number: 3, name: "Pivot Machine", description: "A device that helps failing startups find new directions." }
+                        ]
+                    }
+                ]
+            },
+            {
+                number: 4,
+                name: "PRAXIA",
+                motto: "Practical solutions for practical people.",
+                location: "Former Chicago, Illinois",
+                overview: "PRAXIA is built on the foundation of practical solutions and tangible results. Theory takes a backseat to application, and all ideas are judged solely on their functional merit. The society values iterative improvement, hands-on problem-solving, and measurable outcomes above all else. Citizens are direct, action-oriented, and focused on what works rather than what should work.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "Implementation Center",
+                        description: "Solution Square is a bustling hub of practical activity. Unlike the theoretical discussions of PRIME or the chaotic pivots of BALAJISTAN, here you see people actively building, testing, and refining tangible solutions to real problems. Workbenches and testing stations fill the open-air space.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Efficiency Expert", description: "A person with a clipboard measuring and optimizing workflows." },
+                            { type: "OBJECT", number: 1, name: "Practicality Gauge", description: "A device that measures the real-world utility of concepts." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "Solution Workshops",
+                        description: "Iteration Park showcases the evolution of PRAXIA's most successful innovations. Rather than celebrating final products, the park displays the entire development process—from failed prototypes to current versions to planned improvements. Each exhibit includes detailed data on performance metrics, user feedback, and iterative enhancements.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Problem Solver", description: "A person wearing work clothes with various tools attached to their belt." },
+                            { type: "OBJECT", number: 2, name: "Iteration Machine", description: "A device that rapidly prototypes and tests solutions." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Results Park",
+                        description: "The Testing Grounds is where all new ideas in PRAXIA must prove their worth. The vast facility contains simulated environments for every conceivable scenario—urban settings, agricultural fields, domestic spaces, and industrial zones. Nothing is implemented in PRAXIA without first demonstrating measurable value here.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Outcome Assessor", description: "A person measuring and documenting the impact of various solutions." },
+                            { type: "OBJECT", number: 3, name: "Impact Calculator", description: "A machine that quantifies the real-world benefits of implemented solutions." }
+                        ]
+                    }
+                ]
+            },
+            {
+                number: 5,
+                name: "JEFFERSONIAN",
+                motto: "Democracy reimagined for the digital age.",
+                location: "Former Washington D.C.",
+                overview: "JEFFERSONIAN embodies the ideals of digital democracy and radical transparency. Every decision, from the most significant policy to the smallest infrastructure project, is subject to citizen voting and public scrutiny. Information flows freely, and governance is a continuous, collaborative process rather than a hierarchical structure.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "Consensus Hall",
+                        description: "Forum Plaza is the beating heart of JEFFERSONIAN's democratic process. Hundreds of discussion spaces—both physical and augmented reality—host ongoing debates on every aspect of patch governance. Citizens move from forum to forum, contributing arguments, data, and proposals with passionate engagement.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Digital Citizen", description: "A person wearing augmented reality glasses constantly reviewing and voting on proposals." },
+                            { type: "OBJECT", number: 1, name: "Voting Terminal", description: "A secure device that allows citizens to vote on any issue at any time." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "Transparency Tower",
+                        description: "Transparency Tower is a marvel of architectural honesty—a building with literally transparent walls that expose every internal process to public view. This is where the patch's administrative functions are carried out, all under the watchful eyes of any citizen who cares to observe.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Public Servant", description: "A person whose work and communications are livestreamed to all citizens." },
+                            { type: "OBJECT", number: 2, name: "Oversight Display", description: "A screen showing real-time data on all government activities and spending." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Deliberation Gardens",
+                        description: "The Data Commons is JEFFERSONIAN's information center, where absolutely all patch data is available to every citizen. Unlike the proprietary algorithms of PRIME or the efficiency metrics of X, here information is considered a public resource that belongs to everyone equally.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Debate Moderator", description: "A person who facilitates respectful discussion between citizens with opposing views." },
+                            { type: "OBJECT", number: 3, name: "Fact-Checking Kiosk", description: "A terminal that provides verified information on topics being discussed." }
+                        ]
+                    }
+                ]
+            },
+            {
+                number: 6,
+                name: "THE WALLED GARDEN",
+                motto: "Safety and comfort within our walls.",
+                location: "Former San Francisco, California",
+                overview: "THE WALLED GARDEN prioritizes emotional wellbeing, comfort, and harmony above all else. The environment is carefully curated to eliminate distress and maximize pleasant experiences. Citizens are protected from disturbing information, challenging ideas, and uncomfortable realities through sophisticated filtering systems.",
+                landmarks: [
+                    {
+                        number: 1,
+                        name: "Curation Center",
+                        description: "The Experience Curation Center is where all content in THE WALLED GARDEN is carefully filtered. Teams of curators review every piece of information, entertainment, and communication to ensure it meets the patch's standards for positivity and comfort. The building itself features soft edges, gentle lighting, and soothing color schemes.",
+                        entities: [
+                            { type: "CITIZEN", number: 1, name: "Content Curator", description: "A person who reviews and approves all media for community consumption." },
+                            { type: "OBJECT", number: 1, name: "Sentiment Analyzer", description: "A machine that scans content for potentially upsetting material." }
+                        ]
+                    },
+                    {
+                        number: 2,
+                        name: "Comfort Quarters",
+                        description: "The Serenity Residences are designed to eliminate all possible sources of discomfort. Adaptive environments respond to residents' emotional states, adjusting everything from temperature to color schemes. Soundproofing prevents unwanted noise, and specialized filters ensure that even the air is optimized for maximum comfort.",
+                        entities: [
+                            { type: "CITIZEN", number: 2, name: "Wellness Monitor", description: "A person who checks in on residents to ensure their complete satisfaction." },
+                            { type: "OBJECT", number: 2, name: "Mood Regulator", description: "A device that adjusts lighting, temperature, and ambient sound for optimal comfort." }
+                        ]
+                    },
+                    {
+                        number: 3,
+                        name: "Harmony Plaza",
+                        description: "Harmony Plaza is the central gathering space in THE WALLED GARDEN, where citizens come together in carefully moderated interactions. Ambient music plays at precisely calibrated frequencies to promote positive emotions, while subtle lighting shifts discourage any conversation from becoming too intense or controversial.",
+                        entities: [
+                            { type: "CITIZEN", number: 3, name: "Conflict Resolver", description: "A person trained to intervene at the first sign of disagreement." },
+                            { type: "OBJECT", number: 3, name: "Harmony Beacon", description: "A pillar that emits subtle signals to promote calm and agreement." }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // DOM Elements
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const submit = document.getElementById('submit');
+        const patchSelection = document.getElementById('patch-selection');
+        const patchOptions = document.getElementById('patch-options');
+        const selectionCounter = document.getElementById('selection-counter');
+        const confirmSelection = document.getElementById('confirm-selection');
+
+        // Initialize patch selection interface
+        function initializePatchSelection() {
+            // Clear previous options
+            patchOptions.innerHTML = '';
+            
+            // Create option for each patch
+            allPatches.forEach(patch => {
+                const option = document.createElement('div');
+                option.className = 'patch-option';
+                option.dataset.patchNumber = patch.number;
+                option.innerHTML = `
+                    <h4>PATCH ${patch.number}: ${patch.name}</h4>
+                    <p><strong>Motto:</strong> ${patch.motto}</p>
+                    <p><strong>Location:</strong> ${patch.location}</p>
+                    <p>${patch.overview}</p>
+                `;
+                
+                // Add click event to select/deselect
+                option.addEventListener('click', () => {
+                    togglePatchSelection(patch, option);
+                });
+                
+                patchOptions.appendChild(option);
+            });
+            
+            // Show the patch selection interface
+            patchSelection.style.display = 'block';
+            
+            // Initialize confirm button
+            confirmSelection.addEventListener('click', confirmPatchSelections);
+        }
+
+        // Toggle patch selection
+        function togglePatchSelection(patch, optionElement) {
+            const index = gameState.selectedPatches.findIndex(p => p.number === patch.number);
+            
+            if (index === -1) {
+                // Not selected, try to select it
+                if (gameState.selectedPatches.length < 3) {
+                    gameState.selectedPatches.push(patch);
+                    optionElement.classList.add('selected');
+                } else {
+                    print('You can only select up to 3 PATCHES.', 'red');
+                }
+            } else {
+                // Already selected, deselect it
+                gameState.selectedPatches.splice(index, 1);
+                optionElement.classList.remove('selected');
+            }
+            
+            // Update counter
+            selectionCounter.textContent = `Selected: ${gameState.selectedPatches.length}/3`;
+            
+            // Enable/disable confirm button
+            confirmSelection.disabled = gameState.selectedPatches.length === 0;
+        }
+
+        // Confirm patch selections
+        function confirmPatchSelections() {
+            if (gameState.selectedPatches.length === 0) {
+                print('You must select at least one PATCH.', 'red');
+                return;
+            }
+            
+            // Hide selection interface
+            patchSelection.style.display = 'none';
+            
+            // Set selected patches as game patches
+            gameState.patches = [...gameState.selectedPatches];
+            gameState.patchSelectionComplete = true;
+            
+            // Display selected patches
+            print('\nYou have selected the following PATCHES:', 'cyan');
+            gameState.patches.forEach(patch => {
+                print(`PATCH ${patch.number}: ${patch.name} - ${patch.motto}`, 'green');
+            });
+            
+            // Continue with game initialization
+            initializeGame();
+            
+            // Display current patch information
+            displayCurrentPatch();
+        }
+
+        // Output functions
+        function print(text, className = '') {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text + '\n';
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function printHTML(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        // Initialize game data
+        function initializeGame() {
+            // Set initial patch and landmark
+            gameState.currentPatch = gameState.patches[0]; // First selected patch
+            gameState.currentLandmark = gameState.currentPatch.landmarks[0]; // Landmark 1
+            gameState.entities = gameState.currentLandmark.entities;
+        }
+
+        // Display current patch information
+        function displayCurrentPatch() {
+            // Display current patch information
+            print(`=== PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} ===`, 'cyan');
+            print(`Motto: ${gameState.currentPatch.motto}`, 'white');
+            print(`Location: ${gameState.currentPatch.location}`, 'white');
+            print(`Overview: ${gameState.currentPatch.overview}`, 'white');
+            
+            // Display current landmark
+            print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+            print(gameState.currentLandmark.description);
+            
+            // Display available commands
+            print('\nAvailable commands:', 'yellow');
+            print('  TRAVEL - Move to an adjacent PATCH');
+            print('  EXPLORE - Move to an adjacent LANDMARK within the current PATCH');
+            print('  INVESTIGATE - Examine an OBJECT or CITIZEN in the current LANDMARK');
+            print('  DISPLAY MAP - Show your current location and movement options');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        // Command handling
+        function handleCommand(command) {
+            print('> ' + command, 'white');
+            
+            const cmd = command.toUpperCase().trim();
+            
+            // Display TOO CURIOUS counter if game has started
+            if (gameState.gameStarted) {
+                print(`TOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            }
+            
+            // Handle commands
+            switch (cmd) {
+                case 'BEGIN SESSION':
+                    beginSession();
+                    break;
+                case 'BEGIN GAME':
+                    beginGame();
+                    break;
+                case 'END SESSION':
+                    endSession();
+                    break;
+                case 'TRAVEL':
+                    travel();
+                    break;
+                case 'EXPLORE':
+                    explore();
+                    break;
+                case 'INVESTIGATE':
+                    investigate();
+                    break;
+                case 'INTERACT':
+                    interact();
+                    break;
+                case 'CONVERSATE':
+                    conversate();
+                    break;
+                case 'DISPLAY MAP':
+                    displayMap();
+                    break;
+                default:
+                    print('Unknown command. Type BEGIN SESSION to start.', 'yellow');
+            }
+        }
+
+        // Command implementations
+        function beginSession() {
+            gameState.session = true;
+            
+            print('=== THE PATCHWORK: AMERICA 2035 ===', 'cyan');
+            print('Welcome to THE PATCHWORK - a fragmented vision of America in 2035, where tech billionaires have carved the nation into corporate PATCHES.', 'yellow');
+            print('You are an unmarked nomad, searching for a place to call home.', 'yellow');
+            print('In The Patchwork, you move between PATCHES using TRAVEL and navigate between LANDMARKS inside a PATCH using EXPLORE.', 'yellow');
+            print('\nBefore you begin your journey, you must select up to 3 PATCHES to explore.', 'cyan');
+            
+            // Initialize patch selection
+            initializePatchSelection();
+        }
+
+        function beginGame() {
+            if (!gameState.session) {
+                print('You must start a session first. Type BEGIN SESSION.', 'yellow');
+                return;
+            }
+            
+            if (!gameState.patchSelectionComplete) {
+                print('You must select your PATCHES first.', 'yellow');
+                // Show selection interface if it's hidden
+                patchSelection.style.display = 'block';
+                return;
+            }
+            
+            gameState.gameStarted = true;
+            gameState.tooCurious = 0;
+            
+            // Display current location
+            displayCurrentPatch();
+        }
+
+        function endSession() {
+            gameState.session = false;
+            gameState.gameStarted = false;
+            gameState.patchSelectionComplete = false;
+            gameState.selectedPatches = [];
+            
+            print('Ending your session in The Patchwork. Your progress has been saved.', 'cyan');
+            print('Type BEGIN SESSION to start a new journey.', 'yellow');
+        }
+
+        function travel() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            if (gameState.patches.length === 1) {
+                print('You only selected one PATCH. There are no other PATCHES to travel to.', 'yellow');
+                return;
+            }
+            
+            const currentIndex = gameState.patches.findIndex(p => p.number === gameState.currentPatch.number);
+            
+            print('Available PATCHES to travel to:', 'cyan');
+            
+            // List all patches except current one
+            let optionNumber = 1;
+            const travelOptions = [];
+            
+            gameState.patches.forEach((patch, index) => {
+                if (index !== currentIndex) {
+                    print(`  ${optionNumber}. PATCH ${patch.number}: ${patch.name}`, 'white');
+                    travelOptions.push(patch);
+                    optionNumber++;
+                }
+            });
+            
+            print('\nEnter a number to choose your destination.', 'yellow');
+            
+            // Simulate choice (in a real implementation, this would wait for user input)
+            setTimeout(() => {
+                // For demo purposes, always choose option 1
+                print('> 1', 'white');
+                
+                // Move to the selected patch, landmark 1
+                const selectedPatch = travelOptions[0];
+                gameState.currentPatch = selectedPatch;
+                gameState.currentLandmark = gameState.currentPatch.landmarks[0];
+                gameState.entities = gameState.currentLandmark.entities;
+                
+                // Display new location
+                print(`You travel to PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name}`, 'cyan');
+                displayCurrentPatch();
+            }, 2000);
+        }
+
+        function explore() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            const landmarks = gameState.currentPatch.landmarks;
+            const currentIndex = gameState.currentLandmark.number - 1;
+            
+            print('Available LANDMARKS to explore:', 'cyan');
+            
+            // List all landmarks except current one
+            let optionNumber = 1;
+            const exploreOptions = [];
+            
+            landmarks.forEach((landmark, index) => {
+                if (index !== currentIndex) {
+                    print(`  ${optionNumber}. Landmark ${landmark.number}: ${landmark.name}`, 'white');
+                    exploreOptions.push(landmark);
+                    optionNumber++;
+                }
+            });
+            
+            print('\nEnter a number to choose your destination.', 'yellow');
+            
+            // Simulate choice (in a real implementation, this would wait for user input)
+            setTimeout(() => {
+                // For demo purposes, always choose option 1
+                print('> 1', 'white');
+                
+                // Move to the selected landmark
+                const selectedLandmark = exploreOptions[0];
+                gameState.currentLandmark = selectedLandmark;
+                gameState.entities = gameState.currentLandmark.entities;
+                
+                // Display new location
+                print(`You explore to Landmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+                print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+                print(gameState.currentLandmark.description);
+                
+                // Display TOO CURIOUS counter
+                print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            }, 2000);
+        }
+
+        function investigate() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            const entities = gameState.currentLandmark.entities;
+            
+            if (entities.length === 0) {
+                print('There is nothing to investigate here.', 'yellow');
+                return;
+            }
+            
+            // If no current entity, start with the first one
+            let nextEntityIndex = 0;
+            if (gameState.currentEntity) {
+                const currentIndex = entities.findIndex(e => 
+                    e.type === gameState.currentEntity.type && e.number === gameState.currentEntity.number);
+                nextEntityIndex = (currentIndex + 1) % entities.length;
+            }
+            
+            gameState.currentEntity = entities[nextEntityIndex];
+            
+            // Display entity information
+            if (gameState.currentEntity.type === 'CITIZEN') {
+                print(`Citizen: ${gameState.currentEntity.name}`, 'yellow');
+            } else {
+                print(`Object: ${gameState.currentEntity.name}`, 'magenta');
+            }
+            print(gameState.currentEntity.description);
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function interact() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            if (!gameState.currentEntity) {
+                print('You must first INVESTIGATE an object to interact with.', 'yellow');
+                return;
+            }
+            
+            if (gameState.currentEntity.type !== 'OBJECT') {
+                print('You can only INTERACT with OBJECTS. Use CONVERSATE with CITIZENS.', 'yellow');
+                return;
+            }
+            
+            // Increment TOO CURIOUS counter
+            gameState.tooCurious++;
+            
+            // Check for execution
+            if (gameState.tooCurious >= 30) {
+                executePlayer();
+                return;
+            }
+            
+            // Display interaction
+            print(`You interact with ${gameState.currentEntity.name}.`, 'magenta');
+            print('[Object interaction not yet fully implemented]', 'red');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function conversate() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            if (!gameState.currentEntity) {
+                print('You must first INVESTIGATE a citizen to talk with.', 'yellow');
+                return;
+            }
+            
+            if (gameState.currentEntity.type !== 'CITIZEN') {
+                print('You can only CONVERSATE with CITIZENS. Use INTERACT with OBJECTS.', 'yellow');
+                return;
+            }
+            
+            // Increment TOO CURIOUS counter
+            gameState.tooCurious++;
+            
+            // Check for execution
+            if (gameState.tooCurious >= 30) {
+                executePlayer();
+                return;
+            }
+            
+            // Display conversation
+            print(`You talk with ${gameState.currentEntity.name}.`, 'yellow');
+            print(`${gameState.currentEntity.name} says: "Hello there."`, 'yellow');
+            print('[Dialogue not yet fully implemented]', 'red');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function displayMap() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            // Display TOO CURIOUS counter
+            print(`TOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            
+            // Display current location
+            print('\nYou are currently in:', 'cyan');
+            print(`  PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name}`);
+            print(`  Landmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`);
+            
+            // Display ASCII map
+            print('\nPATCH MAP:', 'cyan');
+            print(asciiMaps[`patch${gameState.currentPatch.number}`], 'ascii-art');
+            
+            print('\nLANDMARK MAP:', 'cyan');
+            print(asciiMaps.landmark, 'ascii-art');
+            
+            // Display available patches to travel to
+            if (gameState.patches.length > 1) {
+                const currentIndex = gameState.patches.findIndex(p => p.number === gameState.currentPatch.number);
+                
+                print('\nAvailable PATCHES to travel to (use TRAVEL command):', 'cyan');
+                
+                gameState.patches.forEach((patch, index) => {
+                    if (index !== currentIndex) {
+                        print(`  - PATCH ${patch.number}: ${patch.name}`);
+                    }
+                });
+            } else {
+                print('\nYou only selected one PATCH. There are no other PATCHES to travel to.', 'yellow');
+            }
+            
+            // Display adjacent landmarks
+            const landmarks = gameState.currentPatch.landmarks;
+            const currentLandmarkIndex = gameState.currentLandmark.number - 1;
+            
+            print('\nAvailable LANDMARKS to explore (use EXPLORE command):', 'cyan');
+            
+            landmarks.forEach((landmark, index) => {
+                if (index !== currentLandmarkIndex) {
+                    print(`  - Landmark ${landmark.number}: ${landmark.name}`);
+                }
+            });
+            
+            // Display entities in current landmark
+            print('\nEntities in this LANDMARK (use INVESTIGATE to examine):', 'cyan');
+            if (gameState.entities.length > 0) {
+                gameState.entities.forEach(entity => {
+                    if (entity.type === 'CITIZEN') {
+                        print(`  - Citizen: ${entity.name}`, 'yellow');
+                    } else {
+                        print(`  - Object: ${entity.name}`, 'magenta');
+                    }
+                });
+            } else {
+                print('  None');
+            }
+        }
+
+        function executePlayer() {
+            print('You have become TOO CURIOUS!', 'red');
+            print(`The authorities in PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} have deemed you a threat.`, 'red');
+            print('You are executed according to the local customs.', 'red');
+            print('GAME OVER', 'red');
+            
+            // Reset game
+            gameState.gameStarted = false;
+            gameState.session = false;
+            gameState.patchSelectionComplete = false;
+            gameState.selectedPatches = [];
+            
+            print('\nType BEGIN SESSION to try again.', 'yellow');
+        }
+
+        // Event listeners
+        submit.addEventListener('click', () => {
+            const command = input.value.trim();
+            if (command) {
+                handleCommand(command);
+                input.value = '';
+            }
+        });
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const command = input.value.trim();
+                if (command) {
+                    handleCommand(command);
+                    input.value = '';
+                }
+            }
+        });
+
+        function sendCommand(command) {
+            handleCommand(command);
+        }
+
+        // Initial message
+        print('Welcome to THE PATCHWORK: AMERICA 2035', 'cyan');
+        print('Type BEGIN SESSION to start your journey.', 'yellow');
+        
+        // Page Down Button Functionality
+        let lastActionPosition = 0;
+        let tooltipShown = false;
+        
+        // Function to handle page down button
+        function setupPageDownButton() {
+            const pageDownButton = document.getElementById('page-down-button');
+            const infoTooltip = document.getElementById('info-tooltip');
+            const outputElement = document.getElementById('output');
+            
+            if (!pageDownButton || !infoTooltip || !outputElement) {
+                console.error('Button elements not found');
+                return;
+            }
+            
+            // Track last action position when output is updated
+            const originalPrint = print;
+            print = function(text, className = '') {
+                originalPrint(text, className);
+                lastActionPosition = outputElement.scrollHeight;
+            };
+            
+            // Single click: Scroll down one page
+            pageDownButton.addEventListener('click', function(event) {
+                // Show tooltip on first use
+                if (!tooltipShown) {
+                    infoTooltip.classList.add('visible');
+                    tooltipShown = true;
+                }
+                
+                // Get the last visible line and make it the first visible line
+                const lineHeight = parseInt(getComputedStyle(outputElement).lineHeight);
+                const visibleHeight = outputElement.clientHeight;
+                outputElement.scrollTop += visibleHeight - lineHeight;
+            });
+            
+            // Double click: Return to last action position
+            pageDownButton.addEventListener('dblclick', function(event) {
+                event.preventDefault();
+                outputElement.scrollTop = lastActionPosition - outputElement.clientHeight / 2;
+            });
+            
+            // Click tooltip to dismiss
+            infoTooltip.addEventListener('click', function() {
+                infoTooltip.classList.remove('visible');
+            });
+        }
+        
+        // Wait for DOM to be fully loaded before setting up button
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupPageDownButton);
+        } else {
+            setupPageDownButton();
+        }
+    </script>
+</body>
+</html>
