@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE PATCHWORK: AMERICA 2035</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #111;
+            padding: 20px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        #output {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #000;
+            padding: 10px;
+            border: 1px solid #0f0;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        #input-container {
+            display: flex;
+        }
+        #input {
+            flex-grow: 1;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            font-family: 'Courier New', monospace;
+        }
+        #submit {
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            padding: 5px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #commands {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #111;
+            border: 1px solid #0f0;
+        }
+        .command-btn {
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .command-btn:hover {
+            background-color: #0f0;
+            color: #000;
+        }
+        .cyan { color: cyan; }
+        .yellow { color: yellow; }
+        .red { color: red; }
+        .green { color: lightgreen; }
+        .white { color: white; }
+        .magenta { color: magenta; }
+        .ascii-art {
+            font-family: monospace;
+            white-space: pre;
+        }
+        #patch-selection {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #111;
+            border: 1px solid #0f0;
+        }
+        .patch-option {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #000;
+            border: 1px solid #0f0;
+            cursor: pointer;
+        }
+        .patch-option:hover {
+            background-color: #0a0a0a;
+        }
+        .patch-option.selected {
+            background-color: #003300;
+            border: 1px solid #0f0;
+        }
+        #selection-counter {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        #confirm-selection {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            display: block;
+        }
+        #confirm-selection:disabled {
+            background-color: #005500;
+            color: #333;
+            cursor: not-allowed;
+        }
+        #page-down-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 2px solid #0f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+        #page-down-button:hover {
+            background-color: rgba(0, 255, 0, 0.4);
+        }
+        #page-down-button::after {
+            content: "↓";
+            color: #0f0;
+            font-size: 24px;
+        }
+        #info-tooltip {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background-color: #000;
+            border: 1px solid #0f0;
+            padding: 10px;
+            max-width: 250px;
+            font-size: 12px;
+            color: #0f0;
+            display: none;
+            z-index: 1001;
+        }
+        #info-tooltip.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1 class="cyan">THE PATCHWORK: AMERICA 2035</h1>
+        <div id="output"></div>
+        <div id="input-container">
+            <input type="text" id="input" placeholder="Type your command here...">
+            <button id="submit">Submit</button>
+        </div>
+        <div id="commands">
+            <h3 class="yellow">Quick Commands:</h3>
+            <button class="command-btn" onclick="sendCommand('BEGIN SESSION')">BEGIN SESSION</button>
+            <button class="command-btn" onclick="sendCommand('BEGIN GAME')">BEGIN GAME</button>
+            <button class="command-btn" onclick="sendCommand('END SESSION')">END SESSION</button>
+            <button class="command-btn" onclick="sendCommand('TRAVEL')">TRAVEL</button>
+            <button class="command-btn" onclick="sendCommand('EXPLORE')">EXPLORE</button>
+            <button class="command-btn" onclick="sendCommand('INVESTIGATE')">INVESTIGATE</button>
+            <button class="command-btn" onclick="sendCommand('INTERACT')">INTERACT</button>
+            <button class="command-btn" onclick="sendCommand('CONVERSATE')">CONVERSATE</button>
+            <button class="command-btn" onclick="sendCommand('DISPLAY MAP')">DISPLAY MAP</button>
+        </div>
+        
+        <!-- Patch Selection Interface -->
+        <div id="patch-selection">
+            <h3 class="cyan">Select 3 PATCHES to visit:</h3>
+            <div id="patch-options"></div>
+            <div id="selection-counter" class="yellow">Selected: 0/3</div>
+            <button id="confirm-selection" disabled>Confirm Selection</button>
+        </div>
+    </div>
+    
+    <div id="page-down-button"></div>
+    <div id="info-tooltip">
+        Click once to scroll down one page.<br>
+        Double-click to return to your last action.
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            patches: [
+                {
+                    number: 1,
+                    name: "X",
+                    motto: "Efficiency Above All",
+                    location: "Former New England",
+                    overview: "X represents the ultimate expression of efficiency and minimalism. Every element in this patch has been optimized to serve its function with minimal resource expenditure. The aesthetic is stark white and geometric, with no decorative elements. Citizens move with purpose, speaking in concise, information-dense sentences.",
+                    landmarks: [
+                        {
+                            number: 1,
+                            name: "Central Hub",
+                            description: "You stand in the Central Hub of X, a vast white space of perfect geometric precision. The floor, walls, and ceiling form a seamless continuum of non-reflective white material. Citizens in identical white uniforms move along invisible pathways, their trajectories optimized to prevent collisions. The ambient temperature is exactly 20°C—determined to be the optimal balance between comfort and cognitive function.",
+                            entities: [
+                                { type: "citizen", name: "Efficiency Monitor X-7", description: "A tall, thin individual with a shaved head and white uniform. Their movements are precise and economical, with no wasted motion. They speak in clipped, information-dense sentences." },
+                                { type: "object", name: "Resource Allocation Terminal", description: "A sleek white pedestal with a floating holographic display showing real-time resource distribution throughout X. The interface consists of pure geometric shapes with no text—citizens interact with it through precise gesture controls." }
+                            ]
+                        },
+                        {
+                            number: 2,
+                            name: "Residential Block",
+                            description: "The Residential Block of X consists of identical white cubes arranged in a perfect grid pattern. Each unit provides exactly 27 cubic meters of living space—the calculated minimum for optimal human function. The furnishings are sparse: a sleep platform, a nutrition station, a hygiene pod, and a work terminal.",
+                            entities: [
+                                { type: "citizen", name: "Resident X-342", description: "A citizen in standard white attire, currently engaged in precisely timed nutrition consumption. They take exactly identical bites at 15-second intervals, chewing each exactly 32 times." },
+                                { type: "object", name: "Sleep Optimization Pod", description: "A white rectangular platform with embedded sensors that monitor brain activity, adjusting temperature, light, and sound to ensure maximum sleep efficiency. A small display shows sleep metrics with four decimal places of precision." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    number: 2,
+                    name: "NOVA YORK",
+                    motto: "The Eternal Celebration",
+                    location: "Former New York City",
+                    overview: "NOVA YORK is a perpetual festival of sensory excess, where the line between performance and daily life has completely dissolved. Every street is a stage, every interaction a scene in an endless immersive theater production. Citizens are performers who never break character, their personalities as vibrant and exaggerated as their elaborate costumes.",
+                    landmarks: [
+                        {
+                            number: 1,
+                            name: "The Grand Promenade",
+                            description: "You find yourself on The Grand Promenade, the main thoroughfare of NOVA YORK. The street is a riot of color and sound, with buildings painted in impossible hues that seem to shift and pulse with the music that fills the air. Performers dance on floating platforms, while others swing on bejeweled trapeze rigs between buildings. The cobblestone street itself is inlaid with lights that pulse in time with the music.",
+                            entities: [
+                                { type: "citizen", name: "The Maestro", description: "A flamboyant figure in a tailcoat made of shimmering fabric that changes color with their movements. They conduct not just music but the very flow of the crowd, their exaggerated gestures somehow influencing the movement of everyone around them." },
+                                { type: "object", name: "Mood Organ", description: "A massive pipe organ with keys made of stained glass. Instead of producing conventional music, it releases colored mist that induces specific emotional states in those who breathe it. Currently, it's emitting a golden haze that creates a sense of joyful anticipation." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    number: 3,
+                    name: "PRAXIA",
+                    motto: "Solutions, Not Theories",
+                    location: "Former Midwest",
+                    overview: "PRAXIA is built on the foundation of practical solutions and tangible results. Theory takes a backseat to application, and all ideas are judged solely on their functional merit. The society values iterative improvement, hands-on problem-solving, and measurable outcomes above all else. Citizens are direct, action-oriented, and focused on what works rather than what should work.",
+                    landmarks: [
+                        {
+                            number: 1,
+                            name: "The Workshop Commons",
+                            description: "You stand in the Workshop Commons, the bustling heart of PRAXIA. The massive open space is filled with workbenches, testing areas, and prototype displays. The air smells of machine oil, wood, and the distinctive scent of the biodegradable plastic that PRAXIA pioneered. Citizens move purposefully between stations, their clothing practical and adorned with numerous pockets and tool attachments. The constant sound of construction—hammering, sawing, welding—forms a rhythmic backdrop to the focused activity.",
+                            entities: [
+                                { type: "citizen", name: "Master Builder Johansson", description: "A stocky woman in her sixties with calloused hands and a vest covered in specialized tools. Her gray hair is cut in a no-nonsense style, and she wears safety goggles pushed up on her forehead. She speaks directly and concisely, often using her hands to sketch ideas in the air as she talks." },
+                                { type: "object", name: "The Solution Board", description: "A massive interactive display showing current community problems on one side and proposed solutions on the other. Citizens can vote on solutions by physically moving magnetic tokens. Solutions with proven results get highlighted with a golden border and eventually move to the 'Implemented' section." }
+                            ]
+                        },
+                        {
+                            number: 2,
+                            name: "Transparency Tower",
+                            description: "Transparency Tower is a marvel of architectural honesty—a building with literally transparent walls that expose every internal process to public view. This is where the patch's administrative functions are carried out, all under the watchful eyes of any citizen who cares to observe.",
+                            entities: [
+                                { type: "citizen", name: "Coordinator Davis", description: "A middle-aged person with a practical jumpsuit and a tablet computer permanently strapped to their forearm. They move efficiently between different administrative stations, solving problems with minimal discussion." },
+                                { type: "object", name: "The Iteration Engine", description: "A complex mechanical device that physically demonstrates the process of iterative improvement. It continuously builds, tests, and refines small wooden structures, each version slightly better than the last. Citizens often gather to watch its hypnotic process." }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            selectedPatches: [],
+            currentPatch: null,
+            currentLandmark: null,
+            entities: [],
+            tooCurious: 0
+        };
+
+        // DOM elements
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const submit = document.getElementById('submit');
+        const patchSelection = document.getElementById('patch-selection');
+        const patchOptions = document.getElementById('patch-options');
+        const selectionCounter = document.getElementById('selection-counter');
+        const confirmSelection = document.getElementById('confirm-selection');
+
+        // Initialize patch selection interface
+        function initializePatchSelection() {
+            // Clear previous options
+            patchOptions.innerHTML = '';
+            
+            // Create patch options
+            gameState.patches.forEach(patch => {
+                const option = document.createElement('div');
+                option.className = 'patch-option';
+                option.innerHTML = `
+                    <h4 class="cyan">PATCH ${patch.number}: ${patch.name}</h4>
+                    <p><strong>Motto:</strong> ${patch.motto}</p>
+                    <p><strong>Location:</strong> ${patch.location}</p>
+                `;
+                
+                option.addEventListener('click', () => togglePatchSelection(patch, option));
+                patchOptions.appendChild(option);
+            });
+            
+            // Show patch selection interface
+            patchSelection.style.display = 'block';
+        }
+
+        // Toggle patch selection
+        function togglePatchSelection(patch, optionElement) {
+            const index = gameState.selectedPatches.findIndex(p => p.number === patch.number);
+            
+            if (index === -1 && gameState.selectedPatches.length < 3) {
+                // Select patch
+                gameState.selectedPatches.push(patch);
+                optionElement.classList.add('selected');
+            } else if (index !== -1) {
+                // Deselect patch
+                gameState.selectedPatches.splice(index, 1);
+                optionElement.classList.remove('selected');
+            }
+            
+            // Update counter
+            selectionCounter.textContent = `Selected: ${gameState.selectedPatches.length}/3`;
+            
+            // Enable/disable confirm button
+            confirmSelection.disabled = gameState.selectedPatches.length !== 3;
+        }
+
+        // Confirm patch selections
+        function confirmPatchSelections() {
+            // Hide patch selection interface
+            patchSelection.style.display = 'none';
+            
+            // Display selected patches
+            print('\nYou have selected the following patches to visit:', 'cyan');
+            gameState.selectedPatches.forEach(patch => {
+                print(`PATCH ${patch.number}: ${patch.name} - ${patch.motto}`, 'green');
+            });
+            
+            // Start game with first selected patch
+            gameState.currentPatch = gameState.selectedPatches[0];
+            gameState.currentLandmark = gameState.currentPatch.landmarks[0];
+            gameState.entities = gameState.currentLandmark.entities;
+            
+            // Display current patch information
+            displayCurrentPatch();
+        }
+
+        // Output functions
+        function print(text, className = '') {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text + '\n';
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function printHTML(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        // Initialize game data
+        function initializeGame() {
+            // Set initial patch and landmark
+            gameState.currentPatch = gameState.patches[0]; // First selected patch
+            gameState.currentLandmark = gameState.currentPatch.landmarks[0]; // Landmark 1
+            gameState.entities = gameState.currentLandmark.entities;
+        }
+
+        // Display current patch information
+        function displayCurrentPatch() {
+            // Display current patch information
+            print(`=== PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} ===`, 'cyan');
+            print(`Motto: ${gameState.currentPatch.motto}`, 'white');
+            print(`Location: ${gameState.currentPatch.location}`, 'white');
+            print(`Overview: ${gameState.currentPatch.overview}`, 'white');
+            
+            // Display current landmark
+            print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+            print(gameState.currentLandmark.description);
+            
+            // Display available commands
+            print('\nAvailable commands:', 'yellow');
+            print('  TRAVEL - Move to an adjacent PATCH');
+            print('  EXPLORE - Move to an adjacent LANDMARK within the current PATCH');
+            print('  INVESTIGATE - Examine an OBJECT or CITIZEN in the current LANDMARK');
+            print('  DISPLAY MAP - Show your current location and movement options');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        // Handle commands
+        function handleCommand(command) {
+            command = command.trim().toUpperCase();
+            
+            switch (command) {
+                case 'BEGIN SESSION':
+                    beginSession();
+                    break;
+                case 'BEGIN GAME':
+                    beginGame();
+                    break;
+                case 'END SESSION':
+                    endSession();
+                    break;
+                case 'TRAVEL':
+                    travel();
+                    break;
+                case 'EXPLORE':
+                    explore();
+                    break;
+                case 'INVESTIGATE':
+                    print('What would you like to investigate?', 'yellow');
+                    print('Available entities:', 'yellow');
+                    gameState.entities.forEach(entity => {
+                        print(`  ${entity.name} (${entity.type})`, 'white');
+                    });
+                    break;
+                case 'INTERACT':
+                    print('Interaction functionality coming soon...', 'yellow');
+                    break;
+                case 'CONVERSATE':
+                    print('Conversation functionality coming soon...', 'yellow');
+                    break;
+                case 'DISPLAY MAP':
+                    print('Map display functionality coming soon...', 'yellow');
+                    break;
+                default:
+                    if (command.startsWith('INVESTIGATE ')) {
+                        const target = command.substring(12);
+                        const entity = gameState.entities.find(e => e.name.toUpperCase().includes(target));
+                        if (entity) {
+                            print(`Investigating ${entity.name}...`, 'green');
+                            print(entity.description);
+                            gameState.tooCurious += 1;
+                            print(`TOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+                        } else {
+                            print(`Cannot find ${target} to investigate.`, 'red');
+                        }
+                    } else {
+                        print(`Unknown command: ${command}`, 'red');
+                    }
+            }
+        }
+
+        // Begin session
+        function beginSession() {
+            clearOutput();
+            print('Initializing THE PATCHWORK: AMERICA 2035', 'cyan');
+            print('The year is 2035. The United States has fractured into autonomous regions known as PATCHES.', 'white');
+            print('Each PATCH operates under its own distinct societal model and governing philosophy.', 'white');
+            print('You are a TRAVELER, permitted to move between these isolated societies.', 'white');
+            print('\nType BEGIN GAME to start your journey.', 'yellow');
+        }
+
+        // Begin game
+        function beginGame() {
+            clearOutput();
+            print('Welcome, TRAVELER.', 'cyan');
+            print('Before you begin your journey through THE PATCHWORK, you must select which PATCHES you wish to visit.', 'white');
+            print('Choose wisely—each PATCH offers a unique perspective on what America could become.', 'white');
+            print('Remember: curiosity has consequences. The more you investigate, the more attention you draw.', 'red');
+            print('If your TOO CURIOUS meter reaches 30, your journey may come to an premature end.', 'red');
+            
+            // Initialize patch selection
+            initializePatchSelection();
+            
+            // Set up confirm button
+            confirmSelection.addEventListener('click', confirmPatchSelections);
+        }
+
+        // End session
+        function endSession() {
+            clearOutput();
+            print('Thank you for experiencing THE PATCHWORK: AMERICA 2035', 'cyan');
+            print('Your session has been terminated.', 'white');
+            print('Type BEGIN SESSION to start again.', 'yellow');
+            
+            // Reset game state
+            gameState.selectedPatches = [];
+            gameState.currentPatch = null;
+            gameState.currentLandmark = null;
+            gameState.entities = [];
+            gameState.tooCurious = 0;
+        }
+
+        // Travel between patches
+        function travel() {
+            if (gameState.selectedPatches.length <= 1) {
+                print('There are no other PATCHES available to visit.', 'red');
+                return;
+            }
+            
+            print('Available PATCHES to travel to:', 'yellow');
+            gameState.selectedPatches.forEach(patch => {
+                if (patch.number !== gameState.currentPatch.number) {
+                    print(`  PATCH ${patch.number}: ${patch.name}`, 'white');
+                }
+            });
+            
+            print('\nTo travel to a PATCH, type: TRAVEL TO [PATCH NUMBER or NAME]', 'yellow');
+        }
+
+        // Explore landmarks within current patch
+        function explore() {
+            if (gameState.currentPatch.landmarks.length <= 1) {
+                print('There are no other LANDMARKS available to explore in this PATCH.', 'red');
+                return;
+            }
+            
+            print('Available LANDMARKS to explore in this PATCH:', 'yellow');
+            gameState.currentPatch.landmarks.forEach(landmark => {
+                if (landmark.number !== gameState.currentLandmark.number) {
+                    print(`  LANDMARK ${landmark.number}: ${landmark.name}`, 'white');
+                }
+            });
+            
+            print('\nTo explore a LANDMARK, type: EXPLORE [LANDMARK NUMBER or NAME]', 'yellow');
+        }
+
+        // Event listeners
+        submit.addEventListener('click', () => {
+            const command = input.value;
+            if (command.trim() !== '') {
+                print(`> ${command}`, 'yellow');
+                input.value = '';
+                handleCommand(command);
+            }
+        });
+
+        input.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const command = input.value;
+                if (command.trim() !== '') {
+                    print(`> ${command}`, 'yellow');
+                    input.value = '';
+                    handleCommand(command);
+                }
+            }
+        });
+
+        // Define appendOutput function if it doesn't exist
+        function appendOutput(text, color = null) {
+            const span = document.createElement('span');
+            if (color) span.style.color = color;
+            span.textContent = text + '\n';
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        // Page Down Button Functionality
+        let lastActionPosition = 0;
+        let tooltipShown = false;
+        
+        // Ensure DOM is fully loaded before accessing elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageDownButton = document.getElementById('page-down-button');
+            const infoTooltip = document.getElementById('info-tooltip');
+            const outputElement = document.getElementById('output');
+            
+            if (!pageDownButton || !infoTooltip || !outputElement) {
+                console.error('Button elements not found');
+                return;
+            }
+
+            // Track last action position when output is updated
+            const originalPrint = print;
+            print = function(text, className = '') {
+                originalPrint(text, className);
+                lastActionPosition = outputElement.scrollHeight;
+            };
+
+            // Single click: Scroll down one page
+            pageDownButton.addEventListener('click', function(event) {
+                // Show tooltip on first use
+                if (!tooltipShown) {
+                    infoTooltip.classList.add('visible');
+                    tooltipShown = true;
+                }
+                
+                // Get the last visible line and make it the first visible line
+                const lineHeight = parseInt(getComputedStyle(outputElement).lineHeight);
+                const visibleHeight = outputElement.clientHeight;
+                outputElement.scrollTop += visibleHeight - lineHeight;
+            });
+
+            // Double click: Return to last action position
+            pageDownButton.addEventListener('dblclick', function(event) {
+                event.preventDefault();
+                outputElement.scrollTop = lastActionPosition - outputElement.clientHeight / 2;
+            });
+
+            // Click tooltip to dismiss
+            infoTooltip.addEventListener('click', function() {
+                infoTooltip.classList.remove('visible');
+            });
+        });
+
+        // Initial message
+        print('Welcome to THE PATCHWORK: AMERICA 2035', 'cyan');
+        print('Type BEGIN SESSION to start your journey.', 'yellow');
+    </script>
+</body>
+</html>
