@@ -1,0 +1,54 @@
+/* Page Down Button Styles */
+.page-down-button {
+    position: fixed;
+    right: 20px;
+    /* Position will be set dynamically in JS */
+    width: 50px;
+    height: 50px;
+    background-color: #005500;
+    border: 2px solid #0f0;
+    border-radius: 50%;
+    color: #0f0;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: background-color 0.3s, transform 0.2s;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.page-down-button:hover {
+    background-color: #007700;
+    transform: scale(1.05);
+}
+
+.page-down-button:active {
+    transform: scale(0.95);
+}
+
+.info-tooltip {
+    position: absolute;
+    right: 80px;
+    top: 620px;
+    width: 250px;
+    background-color: #001100;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 101;
+    display: none;
+}
+
+.info-tooltip.visible {
+    display: block;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
