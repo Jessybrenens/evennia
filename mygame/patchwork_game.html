@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE PATCHWORK: AMERICA 2035</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #111;
+            padding: 20px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        #output {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #000;
+            padding: 10px;
+            border: 1px solid #0f0;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        #input-container {
+            display: flex;
+        }
+        #input {
+            flex-grow: 1;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            font-family: 'Courier New', monospace;
+        }
+        #submit {
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            padding: 5px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #commands {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #111;
+            border: 1px solid #0f0;
+        }
+        .command-btn {
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .command-btn:hover {
+            background-color: #0f0;
+            color: #000;
+        }
+        .cyan { color: cyan; }
+        .yellow { color: yellow; }
+        .red { color: red; }
+        .green { color: lightgreen; }
+        .white { color: white; }
+        .magenta { color: magenta; }
+        .ascii-art {
+            font-family: monospace;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1 class="cyan">THE PATCHWORK: AMERICA 2035</h1>
+        <div id="output"></div>
+        <div id="input-container">
+            <input type="text" id="input" placeholder="Type your command here...">
+            <button id="submit">Submit</button>
+        </div>
+        <div id="commands">
+            <h3 class="yellow">Quick Commands:</h3>
+            <button class="command-btn" onclick="sendCommand('BEGIN SESSION')">BEGIN SESSION</button>
+            <button class="command-btn" onclick="sendCommand('BEGIN GAME')">BEGIN GAME</button>
+            <button class="command-btn" onclick="sendCommand('END SESSION')">END SESSION</button>
+            <button class="command-btn" onclick="sendCommand('TRAVEL')">TRAVEL</button>
+            <button class="command-btn" onclick="sendCommand('EXPLORE')">EXPLORE</button>
+            <button class="command-btn" onclick="sendCommand('INVESTIGATE')">INVESTIGATE</button>
+            <button class="command-btn" onclick="sendCommand('INTERACT')">INTERACT</button>
+            <button class="command-btn" onclick="sendCommand('CONVERSATE')">CONVERSATE</button>
+            <button class="command-btn" onclick="sendCommand('DISPLAY MAP')">DISPLAY MAP</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            session: false,
+            gameStarted: false,
+            currentPatch: null,
+            currentLandmark: null,
+            currentEntity: null,
+            tooCurious: 0,
+            patches: [],
+            entities: []
+        };
+
+        // ASCII Maps
+        const asciiMaps = {
+            patch1: `
++------------------------------+
+|            PATCH 1           |
+|             "X"              |
+|                              |
+|    [L1]----[L2]              |
+|     |                        |
+|    [L3]                      |
+|                              |
++------------------------------+`,
+            patch2: `
++------------------------------+
+|            PATCH 2           |
+|           "PRIME"            |
+|                              |
+|    [L1]----[L2]----[L3]      |
+|                              |
+|                              |
+|                              |
++------------------------------+`,
+            patch3: `
++------------------------------+
+|            PATCH 3           |
+|         "BALAJISTAN"         |
+|                              |
+|    [L1]                      |
+|     |                        |
+|    [L2]----[L3]              |
+|                              |
++------------------------------+`,
+            patch4: `
++------------------------------+
+|            PATCH 4           |
+|           "PRAXIA"           |
+|                              |
+|    [L1]----[L3]              |
+|     |                        |
+|    [L2]                      |
+|                              |
++------------------------------+`,
+            patch5: `
++------------------------------+
+|            PATCH 5           |
+|        "JEFFERSONIAN"        |
+|                              |
+|    [L1]----[L2]              |
+|             |                |
+|            [L3]              |
+|                              |
++------------------------------+`,
+            patch6: `
++------------------------------+
+|            PATCH 6           |
+|      "THE WALLED GARDEN"     |
+|                              |
+|    [L1]                      |
+|     |                        |
+|    [L2]----[L3]              |
+|                              |
++------------------------------+`,
+            landmark: `
++------------------------------+
+|           LANDMARK           |
+|                              |
+|    [C1]    [O1]              |
+|                              |
+|    [O2]    [C2]              |
+|                              |
++------------------------------+`
+        };
+
+        // Game data
+        const gameData = {
+            patches: [
+                {
+                    number: 1,
+                    name: "X",
+                    motto: "Efficiency through elimination of choice.",
+                    location: "Former Silicon Valley, California",
+                    overview: "A minimalist society where all choices are optimized away.",
+                    landmarks: [
+                        {
+                            number: 1,
+                            name: "The Hub",
+                            description: "The central administrative district of X, featuring stark white buildings with no ornamentation.",
+                            entities: [
+                                { type: "CITIZEN", number: 1, name: "Efficiency Officer", description: "A person in a plain gray uniform who monitors productivity metrics." },
+                                { type: "OBJECT", number: 1, name: "Minimalist Terminal", description: "A sleek white terminal with a single button." }
+                            ]
+                        },
+                        {
+                            number: 2,
+                            name: "Residential Block A",
+                            description: "Identical white cubes serve as housing units, arranged in a perfect grid.",
+                            entities: [
+                                { type: "CITIZEN", number: 2, name: "Resident 1729", description: "A citizen wearing the standard gray jumpsuit of X." },
+                                { type: "OBJECT", number: 2, name: "Nutrition Dispenser", description: "A machine that provides perfectly balanced nutrient paste." }
+                            ]
+                        },
+                        {
+                            number: 3,
+                            name: "Production Zone",
+                            description: "An automated factory where robots assemble products with perfect precision.",
+                            entities: [
+                                { type: "CITIZEN", number: 3, name: "Maintenance Technician", description: "A person responsible for keeping the automation running smoothly." },
+                                { type: "OBJECT", number: 3, name: "Assembly Robot", description: "A robot arm that performs repetitive tasks with perfect accuracy." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    number: 2,
+                    name: "PRIME",
+                    motto: "Only the numbers that matter.",
+                    location: "Former Seattle, Washington",
+                    overview: "A society organized around mathematical principles and optimization algorithms.",
+                    landmarks: [
+                        {
+                            number: 1,
+                            name: "Algorithm Plaza",
+                            description: "A public square where massive displays show constantly updating equations and formulas.",
+                            entities: [
+                                { type: "CITIZEN", number: 1, name: "Data Analyst", description: "A person staring intently at floating holographic numbers." },
+                                { type: "OBJECT", number: 1, name: "Calculation Pillar", description: "A tall obelisk covered in mathematical symbols that change patterns." }
+                            ]
+                        },
+                        {
+                            number: 2,
+                            name: "Quantum Computing Center",
+                            description: "A facility housing advanced quantum computers that solve complex problems.",
+                            entities: [
+                                { type: "CITIZEN", number: 2, name: "Quantum Engineer", description: "A person monitoring the delicate quantum states of the computers." },
+                                { type: "OBJECT", number: 2, name: "Quantum Core", description: "A shimmering cube suspended in a vacuum chamber." }
+                            ]
+                        },
+                        {
+                            number: 3,
+                            name: "Fibonacci Gardens",
+                            description: "A park designed with perfect mathematical proportions and spiral patterns.",
+                            entities: [
+                                { type: "CITIZEN", number: 3, name: "Garden Mathematician", description: "A person carefully trimming plants to maintain perfect ratios." },
+                                { type: "OBJECT", number: 3, name: "Golden Ratio Sculpture", description: "A metallic sculpture that embodies the golden ratio in its design." }
+                            ]
+                        }
+                    ]
+                }
+                // Additional patches would be defined here
+            ]
+        };
+
+        // Initialize game data
+        function initializeGame() {
+            gameState.patches = gameData.patches;
+            
+            // Set initial patch and landmark
+            gameState.currentPatch = gameState.patches[0]; // Patch 1
+            gameState.currentLandmark = gameState.currentPatch.landmarks[0]; // Landmark 1
+            gameState.entities = gameState.currentLandmark.entities;
+        }
+
+        // Output element and functions
+        const output = document.getElementById('output');
+        const input = document.getElementById('input');
+        const submit = document.getElementById('submit');
+
+        function print(text, className = '') {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text + '\n';
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function printHTML(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        // Command handling
+        function handleCommand(command) {
+            print('> ' + command, 'white');
+            
+            const cmd = command.toUpperCase().trim();
+            
+            // Display TOO CURIOUS counter if game has started
+            if (gameState.gameStarted) {
+                print(`TOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            }
+            
+            // Handle commands
+            switch (cmd) {
+                case 'BEGIN SESSION':
+                    beginSession();
+                    break;
+                case 'BEGIN GAME':
+                    beginGame();
+                    break;
+                case 'END SESSION':
+                    endSession();
+                    break;
+                case 'TRAVEL':
+                    travel();
+                    break;
+                case 'EXPLORE':
+                    explore();
+                    break;
+                case 'INVESTIGATE':
+                    investigate();
+                    break;
+                case 'INTERACT':
+                    interact();
+                    break;
+                case 'CONVERSATE':
+                    conversate();
+                    break;
+                case 'DISPLAY MAP':
+                    displayMap();
+                    break;
+                default:
+                    print('Unknown command. Type BEGIN SESSION to start.', 'yellow');
+            }
+        }
+
+        // Command implementations
+        function beginSession() {
+            gameState.session = true;
+            
+            print('=== THE PATCHWORK: AMERICA 2035 ===', 'cyan');
+            print('Welcome to THE PATCHWORK - a fragmented vision of America in 2035, where tech billionaires have carved the nation into corporate PATCHES.', 'yellow');
+            print('You are an unmarked nomad, searching for a place to call home.', 'yellow');
+            print('In The Patchwork, you move between PATCHES using TRAVEL and navigate between LANDMARKS inside a PATCH using EXPLORE.', 'yellow');
+            print('\nType BEGIN GAME to start your journey through The Patchwork.');
+        }
+
+        function beginGame() {
+            if (!gameState.session) {
+                print('You must start a session first. Type BEGIN SESSION.', 'yellow');
+                return;
+            }
+            
+            gameState.gameStarted = true;
+            gameState.tooCurious = 0;
+            
+            // Initialize game data if not already done
+            if (gameState.patches.length === 0) {
+                initializeGame();
+            }
+            
+            // Display current patch information
+            print(`=== PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} ===`, 'cyan');
+            print(`Motto: ${gameState.currentPatch.motto}`, 'white');
+            print(`Location: ${gameState.currentPatch.location}`, 'white');
+            print(`Overview: ${gameState.currentPatch.overview}`, 'white');
+            
+            // Display current landmark
+            print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+            print(gameState.currentLandmark.description);
+            
+            // Display available commands
+            print('\nAvailable commands:', 'yellow');
+            print('  TRAVEL - Move to an adjacent PATCH');
+            print('  EXPLORE - Move to an adjacent LANDMARK within the current PATCH');
+            print('  INVESTIGATE - Examine an OBJECT or CITIZEN in the current LANDMARK');
+            print('  DISPLAY MAP - Show your current location and movement options');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function endSession() {
+            gameState.session = false;
+            gameState.gameStarted = false;
+            
+            print('Ending your session in The Patchwork. Your progress has been saved.', 'cyan');
+            print('Type BEGIN SESSION to continue your journey.', 'yellow');
+        }
+
+        function travel() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            const currentIndex = gameState.currentPatch.number - 1;
+            const nextIndex = (currentIndex + 1) % gameState.patches.length;
+            const prevIndex = (currentIndex - 1 + gameState.patches.length) % gameState.patches.length;
+            
+            print('Adjacent Patches:', 'cyan');
+            print(`  1. PATCH ${gameState.patches[nextIndex].number}: ${gameState.patches[nextIndex].name}`);
+            print(`  2. PATCH ${gameState.patches[prevIndex].number}: ${gameState.patches[prevIndex].name}`);
+            print('\nEnter 1 or 2 to choose your destination.');
+            
+            // Simulate choice (in a real implementation, this would wait for user input)
+            setTimeout(() => {
+                // For demo purposes, always choose option 1
+                print('> 1', 'white');
+                
+                // Move to the next patch, landmark 1
+                gameState.currentPatch = gameState.patches[nextIndex];
+                gameState.currentLandmark = gameState.currentPatch.landmarks[0];
+                gameState.entities = gameState.currentLandmark.entities;
+                
+                // Display new location
+                print(`You travel to PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name}`, 'cyan');
+                print(`=== PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} ===`, 'cyan');
+                print(`Motto: ${gameState.currentPatch.motto}`, 'white');
+                print(`Location: ${gameState.currentPatch.location}`, 'white');
+                print(`Overview: ${gameState.currentPatch.overview}`, 'white');
+                
+                // Display current landmark
+                print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+                print(gameState.currentLandmark.description);
+                
+                // Display TOO CURIOUS counter
+                print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            }, 2000);
+        }
+
+        function explore() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            const landmarks = gameState.currentPatch.landmarks;
+            const currentIndex = gameState.currentLandmark.number - 1;
+            const nextIndex = (currentIndex + 1) % landmarks.length;
+            const prevIndex = (currentIndex - 1 + landmarks.length) % landmarks.length;
+            
+            print('Adjacent Landmarks:', 'cyan');
+            print(`  1. Landmark ${landmarks[nextIndex].number}: ${landmarks[nextIndex].name}`);
+            print(`  2. Landmark ${landmarks[prevIndex].number}: ${landmarks[prevIndex].name}`);
+            print('\nEnter 1 or 2 to choose your destination.');
+            
+            // Simulate choice (in a real implementation, this would wait for user input)
+            setTimeout(() => {
+                // For demo purposes, always choose option 1
+                print('> 1', 'white');
+                
+                // Move to the next landmark
+                gameState.currentLandmark = landmarks[nextIndex];
+                gameState.entities = gameState.currentLandmark.entities;
+                
+                // Display new location
+                print(`You explore to Landmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+                print(`\nLandmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`, 'green');
+                print(gameState.currentLandmark.description);
+                
+                // Display TOO CURIOUS counter
+                print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            }, 2000);
+        }
+
+        function investigate() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            const entities = gameState.currentLandmark.entities;
+            
+            if (entities.length === 0) {
+                print('There is nothing to investigate here.', 'yellow');
+                return;
+            }
+            
+            // If no current entity, start with the first one
+            let nextEntityIndex = 0;
+            if (gameState.currentEntity) {
+                const currentIndex = entities.findIndex(e => 
+                    e.type === gameState.currentEntity.type && e.number === gameState.currentEntity.number);
+                nextEntityIndex = (currentIndex + 1) % entities.length;
+            }
+            
+            gameState.currentEntity = entities[nextEntityIndex];
+            
+            // Display entity information
+            if (gameState.currentEntity.type === 'CITIZEN') {
+                print(`Citizen: ${gameState.currentEntity.name}`, 'yellow');
+            } else {
+                print(`Object: ${gameState.currentEntity.name}`, 'magenta');
+            }
+            print(gameState.currentEntity.description);
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function interact() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            if (!gameState.currentEntity) {
+                print('You must first INVESTIGATE an object to interact with.', 'yellow');
+                return;
+            }
+            
+            if (gameState.currentEntity.type !== 'OBJECT') {
+                print('You can only INTERACT with OBJECTS. Use CONVERSATE with CITIZENS.', 'yellow');
+                return;
+            }
+            
+            // Increment TOO CURIOUS counter
+            gameState.tooCurious++;
+            
+            // Check for execution
+            if (gameState.tooCurious >= 30) {
+                executePlayer();
+                return;
+            }
+            
+            // Display interaction
+            print(`You interact with ${gameState.currentEntity.name}.`, 'magenta');
+            print('[Object interaction not yet fully implemented]', 'red');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function conversate() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            if (!gameState.currentEntity) {
+                print('You must first INVESTIGATE a citizen to talk with.', 'yellow');
+                return;
+            }
+            
+            if (gameState.currentEntity.type !== 'CITIZEN') {
+                print('You can only CONVERSATE with CITIZENS. Use INTERACT with OBJECTS.', 'yellow');
+                return;
+            }
+            
+            // Increment TOO CURIOUS counter
+            gameState.tooCurious++;
+            
+            // Check for execution
+            if (gameState.tooCurious >= 30) {
+                executePlayer();
+                return;
+            }
+            
+            // Display conversation
+            print(`You talk with ${gameState.currentEntity.name}.`, 'yellow');
+            print(`${gameState.currentEntity.name} says: "Hello there."`, 'yellow');
+            print('[Dialogue not yet fully implemented]', 'red');
+            
+            // Display TOO CURIOUS counter
+            print(`\nTOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+        }
+
+        function displayMap() {
+            if (!gameState.gameStarted) {
+                print('You must start the game first. Type BEGIN SESSION, then BEGIN GAME.', 'yellow');
+                return;
+            }
+            
+            // Display TOO CURIOUS counter
+            print(`TOO CURIOUS: ${gameState.tooCurious}/30`, 'red');
+            
+            // Display current location
+            print('\nYou are currently in:', 'cyan');
+            print(`  PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name}`);
+            print(`  Landmark ${gameState.currentLandmark.number}: ${gameState.currentLandmark.name}`);
+            
+            // Display ASCII map
+            print('\nPATCH MAP:', 'cyan');
+            print(asciiMaps[`patch${gameState.currentPatch.number}`], 'ascii-art');
+            
+            print('\nLANDMARK MAP:', 'cyan');
+            print(asciiMaps.landmark, 'ascii-art');
+            
+            // Display adjacent patches
+            const currentPatchIndex = gameState.currentPatch.number - 1;
+            const nextPatchIndex = (currentPatchIndex + 1) % gameState.patches.length;
+            const prevPatchIndex = (currentPatchIndex - 1 + gameState.patches.length) % gameState.patches.length;
+            
+            print('\nAdjacent PATCHES (use TRAVEL to move):', 'cyan');
+            print(`  1. PATCH ${gameState.patches[nextPatchIndex].number}: ${gameState.patches[nextPatchIndex].name}`);
+            print(`  2. PATCH ${gameState.patches[prevPatchIndex].number}: ${gameState.patches[prevPatchIndex].name}`);
+            
+            // Display adjacent landmarks
+            const landmarks = gameState.currentPatch.landmarks;
+            const currentLandmarkIndex = gameState.currentLandmark.number - 1;
+            const nextLandmarkIndex = (currentLandmarkIndex + 1) % landmarks.length;
+            const prevLandmarkIndex = (currentLandmarkIndex - 1 + landmarks.length) % landmarks.length;
+            
+            print('\nAdjacent LANDMARKS (use EXPLORE to move):', 'cyan');
+            print(`  1. Landmark ${landmarks[nextLandmarkIndex].number}: ${landmarks[nextLandmarkIndex].name}`);
+            print(`  2. Landmark ${landmarks[prevLandmarkIndex].number}: ${landmarks[prevLandmarkIndex].name}`);
+            
+            // Display entities in current landmark
+            print('\nEntities in this LANDMARK (use INVESTIGATE to examine):', 'cyan');
+            if (gameState.entities.length > 0) {
+                gameState.entities.forEach(entity => {
+                    if (entity.type === 'CITIZEN') {
+                        print(`  - Citizen: ${entity.name}`, 'yellow');
+                    } else {
+                        print(`  - Object: ${entity.name}`, 'magenta');
+                    }
+                });
+            } else {
+                print('  None');
+            }
+        }
+
+        function executePlayer() {
+            print('You have become TOO CURIOUS!', 'red');
+            print(`The authorities in PATCH ${gameState.currentPatch.number}: ${gameState.currentPatch.name} have deemed you a threat.`, 'red');
+            print('You are executed according to the local customs.', 'red');
+            print('GAME OVER', 'red');
+            
+            // Reset game
+            gameState.gameStarted = false;
+            gameState.session = false;
+            
+            print('\nType BEGIN SESSION to try again.', 'yellow');
+        }
+
+        // Event listeners
+        submit.addEventListener('click', () => {
+            const command = input.value.trim();
+            if (command) {
+                handleCommand(command);
+                input.value = '';
+            }
+        });
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const command = input.value.trim();
+                if (command) {
+                    handleCommand(command);
+                    input.value = '';
+                }
+            }
+        });
+
+        function sendCommand(command) {
+            handleCommand(command);
+        }
+
+        // Initial message
+        print('Welcome to THE PATCHWORK: AMERICA 2035', 'cyan');
+        print('Type BEGIN SESSION to start your journey.', 'yellow');
+    </script>
+</body>
+</html>
